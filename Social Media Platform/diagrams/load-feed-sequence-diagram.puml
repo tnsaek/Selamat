@@ -1,0 +1,50 @@
+@startuml
+title Load Feed Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Feed Page" as Frontend
+participant "Security Filter" as Security
+participant "FeedController" as FeedController
+participant "FeedService" as FeedService
+participant "FollowRepository" as FollowRepository
+participant "PostRepository" as PostRepository
+participant "MediaRepository" as MediaRepository
+participant "ReactionRepository" as ReactionRepository
+database "MySQL" as MySQL
+
+User -> Frontend: Open or refresh feed
+Frontend -> Security: GET /feed?page={page}&size={size}
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> Frontend: 401 Unauthorized
+  Frontend --> User: Redirect to login
+else Token valid
+  Security -> FeedController: Authenticated feed request
+  FeedController -> FeedService: getFeed(currentUser, pageable)
+  FeedService -> FollowRepository: Find accepted followed users
+  FollowRepository -> MySQL: Query follows
+  MySQL --> FollowRepository: Followed user ids
+
+  FeedService -> PostRepository: Query visible posts
+  PostRepository -> MySQL: Load public, own, and followed posts
+  MySQL --> PostRepository: Page of posts
+
+  FeedService -> MediaRepository: Load media for posts
+  MediaRepository -> MySQL: Query media by post ids
+  MySQL --> MediaRepository: Media metadata
+
+  FeedService -> ReactionRepository: Load reaction counts and viewer reactions
+  ReactionRepository -> MySQL: Query reactions
+  MySQL --> ReactionRepository: Reaction data
+
+  FeedService -> FeedService: Build feed response
+  FeedService --> FeedController: Feed page
+  FeedController --> Frontend: 200 OK
+  Frontend --> User: Display feed
+end
+
+@enduml

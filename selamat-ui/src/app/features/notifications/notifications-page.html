@@ -1,0 +1,88 @@
+<section class="notifications-page">
+  <header class="page-header">
+    <div>
+      <h1>Notifications</h1>
+      <p>Follow new activity from messages, comments, reactions, reports, and system updates.</p>
+    </div>
+
+    <div class="page-actions">
+      <label class="unread-toggle">
+        <input type="checkbox" [checked]="unreadOnly()" (change)="toggleUnreadOnly($event)" />
+        <span>Unread only</span>
+      </label>
+      <button
+        type="button"
+        (click)="markAllAsRead()"
+        [disabled]="isMarkingAllRead() || notifications().length === 0"
+      >
+        {{ isMarkingAllRead() ? 'Saving...' : 'Mark all read' }}
+      </button>
+      <button type="button" (click)="loadNotifications()" [disabled]="isLoading()">Refresh</button>
+    </div>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (isLoading()) {
+    <p class="state">Loading notifications...</p>
+  } @else if (notifications().length === 0) {
+    <p class="state">No notifications found.</p>
+  } @else {
+    <div class="notification-list">
+      @for (notification of notifications(); track trackNotification($index, notification)) {
+        <article
+          class="notification-item"
+          role="button"
+          tabindex="0"
+          [class.unread]="!notification.read"
+          (click)="openNotification(notification)"
+          (keydown.enter)="openNotification(notification)"
+          (keydown.space)="openNotification(notification)"
+        >
+          <div class="indicator" aria-hidden="true"></div>
+
+          <div class="notification-body">
+            <div class="notification-title-row">
+              <h2>{{ notification.title }}</h2>
+              <span class="type">{{ notification.notificationType }}</span>
+            </div>
+
+            <p class="body-text">{{ notification.body }}</p>
+
+            <div class="meta">
+              @if (notification.actor) {
+                <span>{{ notification.actor.displayName || notification.actor.username }}</span>
+              }
+              @if (notification.targetType && notification.targetId) {
+                <span>{{ notification.targetType }}</span>
+              }
+              <span>{{ notification.createdAt | date: 'medium' }}</span>
+              @if (notification.targetType) {
+                <span class="action-hint">{{ notificationActionLabel(notification) }}</span>
+              }
+            </div>
+          </div>
+
+          @if (!notification.read) {
+            <button
+              type="button"
+              class="mark-read"
+              (click)="$event.stopPropagation(); markAsRead(notification)"
+              [disabled]="markingReadIds()[notification.id]"
+            >
+              {{ markingReadIds()[notification.id] ? 'Saving...' : 'Mark read' }}
+            </button>
+          }
+        </article>
+      }
+    </div>
+
+    @if (nextCursor()) {
+      <button type="button" class="load-more" (click)="loadMore()" [disabled]="isLoadingMore()">
+        {{ isLoadingMore() ? 'Loading...' : 'Load more' }}
+      </button>
+    }
+  }
+</section>

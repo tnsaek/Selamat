@@ -1,0 +1,201 @@
+@startuml
+title Selamat Social Media Platform - MySQL ER Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide methods
+
+class users {
+  id : BINARY(16) PK
+  username : VARCHAR(50) UNIQUE
+  email : VARCHAR(255) UNIQUE
+  password_hash : VARCHAR(255)
+  status : VARCHAR(30)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class profiles {
+  id : BINARY(16) PK
+  user_id : BINARY(16) FK UNIQUE
+  display_name : VARCHAR(100)
+  bio : VARCHAR(500)
+  avatar_url : VARCHAR(500)
+  cover_image_url : VARCHAR(500)
+  street : VARCHAR(255)
+  city : VARCHAR(120)
+  state : VARCHAR(120)
+  country : VARCHAR(120)
+  website_url : VARCHAR(255)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class roles {
+  id : BINARY(16) PK
+  name : VARCHAR(50) UNIQUE
+  description : VARCHAR(255)
+  created_at : TIMESTAMP
+}
+
+class user_roles {
+  user_id : BINARY(16) PK FK
+  role_id : BINARY(16) PK FK
+  assigned_at : TIMESTAMP
+}
+
+class refresh_tokens {
+  id : BINARY(16) PK
+  user_id : BINARY(16) FK
+  token_hash : VARCHAR(64) UNIQUE
+  expires_at : TIMESTAMP
+  revoked_at : TIMESTAMP
+  created_at : TIMESTAMP
+}
+
+class password_reset_tokens {
+  id : BINARY(16) PK
+  user_id : BINARY(16) FK
+  token_hash : VARCHAR(64) UNIQUE
+  expires_at : TIMESTAMP
+  used_at : TIMESTAMP
+  created_at : TIMESTAMP
+}
+
+class posts {
+  id : BINARY(16) PK
+  author_id : BINARY(16) FK
+  content : TEXT
+  visibility : VARCHAR(30)
+  status : VARCHAR(30)
+  comment_count : BIGINT
+  reaction_count : BIGINT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class media {
+  id : BINARY(16) PK
+  uploader_id : BINARY(16) FK
+  post_id : BINARY(16) FK
+  url : VARCHAR(500)
+  media_type : VARCHAR(30)
+  mime_type : VARCHAR(120)
+  size_bytes : BIGINT
+  alt_text : VARCHAR(255)
+  status : VARCHAR(30)
+  created_at : TIMESTAMP
+}
+
+class comments {
+  id : BINARY(16) PK
+  post_id : BINARY(16) FK
+  author_id : BINARY(16) FK
+  parent_comment_id : BINARY(16) FK
+  content : TEXT
+  status : VARCHAR(30)
+  reaction_count : BIGINT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class reactions {
+  id : BINARY(16) PK
+  user_id : BINARY(16) FK
+  post_id : BINARY(16) FK
+  comment_id : BINARY(16) FK
+  reaction_type : VARCHAR(30)
+  created_at : TIMESTAMP
+}
+
+class follows {
+  id : BINARY(16) PK
+  follower_id : BINARY(16) FK
+  followed_id : BINARY(16) FK
+  status : VARCHAR(30)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class messages {
+  id : BINARY(16) PK
+  sender_id : BINARY(16) FK
+  recipient_id : BINARY(16) FK
+  content : TEXT
+  status : VARCHAR(30)
+  sent_at : TIMESTAMP
+  delivered_at : TIMESTAMP
+  read_at : TIMESTAMP
+}
+
+class notifications {
+  id : BINARY(16) PK
+  recipient_id : BINARY(16) FK
+  actor_id : BINARY(16) FK
+  notification_type : VARCHAR(50)
+  title : VARCHAR(150)
+  body : VARCHAR(500)
+  target_type : VARCHAR(50)
+  target_id : BINARY(16)
+  is_read : BOOLEAN
+  created_at : TIMESTAMP
+  read_at : TIMESTAMP
+}
+
+class reports {
+  id : BINARY(16) PK
+  reporter_id : BINARY(16) FK
+  resolver_id : BINARY(16) FK
+  target_type : VARCHAR(50)
+  target_id : BINARY(16)
+  reason : VARCHAR(255)
+  details : TEXT
+  resolution_note : TEXT
+  status : VARCHAR(30)
+  created_at : TIMESTAMP
+  resolved_at : TIMESTAMP
+}
+
+class moderation_audit_logs {
+  id : BINARY(16) PK
+  actor_id : BINARY(16) FK
+  action : VARCHAR(80)
+  target_type : VARCHAR(30)
+  target_id : BINARY(16)
+  created_at : TIMESTAMP
+}
+
+users "1" -- "0..1" profiles : has
+users "1" -- "many" user_roles : assigned
+roles "1" -- "many" user_roles : granted
+
+users "1" -- "many" refresh_tokens : has
+users "1" -- "many" password_reset_tokens : has
+
+users "1" -- "many" posts : creates
+users "1" -- "many" media : uploads
+posts "1" -- "many" media : contains
+
+posts "1" -- "many" comments : has
+users "1" -- "many" comments : writes
+comments "0..1" -- "many" comments : replies
+
+users "1" -- "many" reactions : makes
+posts "0..1" -- "many" reactions : receives
+comments "0..1" -- "many" reactions : receives
+
+users "1" -- "many" follows : follower
+users "1" -- "many" follows : followed
+
+users "1" -- "many" messages : sends
+users "1" -- "many" messages : receives
+
+users "1" -- "many" notifications : receives
+users "0..1" -- "many" notifications : triggers
+
+users "1" -- "many" reports : submits
+users "0..1" -- "many" reports : resolves
+
+users "1" -- "many" moderation_audit_logs : performs
+
+@enduml

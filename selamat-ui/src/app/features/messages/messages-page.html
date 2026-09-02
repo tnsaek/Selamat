@@ -1,0 +1,210 @@
+<section class="messages-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Inbox</p>
+      <h1>Messages</h1>
+    </div>
+    <button type="button" class="secondary" (click)="loadMessages()" [disabled]="isLoading()">Refresh</button>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="alert error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <section class="messenger-shell">
+    <aside class="conversation-panel">
+      <form class="recipient-search" [formGroup]="messageForm" novalidate>
+        <label>
+          <span>New conversation</span>
+          <input
+            type="text"
+            formControlName="recipientQuery"
+            autocomplete="off"
+            placeholder="Search people"
+            [class.invalid]="isInvalid('recipientQuery') || isInvalid('recipientId')"
+          />
+        </label>
+
+        @if (selectedRecipient(); as recipient) {
+          <div class="selected-recipient">
+            <span>{{ userLabel(recipient) }}</span>
+            <button type="button" class="text-button" (click)="clearRecipient()">Change</button>
+          </div>
+        }
+
+        @if (isSearchingUsers()) {
+          <p class="search-status">Searching users...</p>
+        }
+
+        @if (userResults().length > 0) {
+          <div class="user-results">
+            @for (user of userResults(); track trackUser($index, user)) {
+              <button type="button" class="user-option" (click)="selectRecipient(user)">
+                <span class="avatar">{{ (user.displayName || user.username).charAt(0).toUpperCase() }}</span>
+                <span>
+                  <strong>{{ user.displayName || user.username }}</strong>
+                  <small>@{{ user.username }}</small>
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        @if (isInvalid('recipientQuery') || isInvalid('recipientId')) {
+          <small>Select a recipient from the search results.</small>
+        }
+      </form>
+
+      @if (isLoading()) {
+        <p class="status-message">Loading messages...</p>
+      } @else if (conversations().length === 0) {
+        <section class="empty-state compact">
+          <h2>No conversations</h2>
+          <p>Search for someone to start messaging.</p>
+        </section>
+      } @else {
+        <div class="conversation-list">
+          @for (conversation of conversations(); track trackConversation($index, conversation)) {
+            <button
+              type="button"
+              class="conversation-item"
+              [class.active]="selectedConversationId() === conversation.participant.id"
+              (click)="selectConversation(conversation)"
+            >
+              <span class="avatar">{{ (conversation.participant.displayName || conversation.participant.username).charAt(0).toUpperCase() }}</span>
+              <span class="conversation-copy">
+                <strong>{{ conversation.participant.displayName || conversation.participant.username }}</strong>
+                <span>{{ messagePreview(conversation.latestMessage) }}</span>
+              </span>
+              @if (conversation.unreadCount > 0) {
+                <span class="unread-count">{{ conversation.unreadCount }}</span>
+              }
+            </button>
+          }
+        </div>
+
+        @if (nextCursor()) {
+          <button type="button" class="load-more" (click)="loadMore()" [disabled]="isLoadingMore()">
+            {{ isLoadingMore() ? 'Loading...' : 'Load more' }}
+          </button>
+        }
+      }
+    </aside>
+
+    <section class="thread-panel">
+      @if (selectedRecipient(); as recipient) {
+        <header class="thread-header">
+          <span class="avatar large">{{ (recipient.displayName || recipient.username).charAt(0).toUpperCase() }}</span>
+          <div>
+            <h2>{{ recipient.displayName || recipient.username }}</h2>
+            <p>@{{ recipient.username }}</p>
+          </div>
+        </header>
+
+        @if (sendError()) {
+          <p class="alert error" role="alert">{{ sendError() }}</p>
+        }
+
+        @if (isLoadingTargetMessage()) {
+          <p class="status-message">Loading selected message...</p>
+        }
+
+        <div class="thread-messages">
+          @if (selectedConversationMessages().length === 0) {
+            <section class="empty-state compact">
+              <h2>No messages yet</h2>
+              <p>Send the first message in this conversation.</p>
+            </section>
+          } @else {
+            @for (message of selectedConversationMessages(); track trackMessage($index, message)) {
+              <article
+                class="message-bubble"
+                [id]="'message-' + message.id"
+                [class.mine]="isOwnMessage(message)"
+                [class.target-message]="isTargetMessage(message)"
+              >
+                <p class="content">{{ message.content }}</p>
+                <footer>
+                  <span>{{ sentDate(message) }}</span>
+                  <span>{{ message.status }}</span>
+                </footer>
+
+                @if (!isOwnMessage(message)) {
+                  <button
+                    type="button"
+                    class="comment-action"
+                    (click)="toggleReportForm(message)"
+                    [disabled]="reportedMessageIds()[message.id]"
+                  >
+                    {{ reportedMessageIds()[message.id] ? 'Reported' : 'Report' }}
+                  </button>
+                }
+
+                @if (reportFormOpenByMessageId()[message.id]) {
+                  <section class="report-form" aria-label="Report message">
+                    <label>
+                      <span>Reason</span>
+                      <select
+                        [value]="reportDraftByMessageId()[message.id]?.reason || ''"
+                        (change)="updateReportReason(message.id, $event)"
+                      >
+                        <option value="">Select a reason</option>
+                        <option value="Spam">Spam</option>
+                        <option value="Harassment">Harassment</option>
+                        <option value="Hate speech">Hate speech</option>
+                        <option value="Violence">Violence</option>
+                        <option value="False information">False information</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Details</span>
+                      <textarea
+                        rows="3"
+                        placeholder="Add optional details"
+                        [value]="reportDraftByMessageId()[message.id]?.details || ''"
+                        (input)="updateReportDetails(message.id, $event)"
+                      ></textarea>
+                    </label>
+
+                    <div class="report-actions">
+                      <button
+                        type="button"
+                        class="primary"
+                        (click)="submitReport(message)"
+                        [disabled]="!reportDraftByMessageId()[message.id]?.reason || reportingMessageIds()[message.id]"
+                      >
+                        {{ reportingMessageIds()[message.id] ? 'Submitting...' : 'Submit report' }}
+                      </button>
+                      <button type="button" class="action-button" (click)="toggleReportForm(message)">Cancel</button>
+                    </div>
+                  </section>
+                }
+              </article>
+            }
+          }
+        </div>
+
+        <form class="thread-composer" [formGroup]="messageForm" (ngSubmit)="sendMessage()" novalidate>
+          <input type="hidden" formControlName="recipientId" />
+          <label>
+            <span>Message</span>
+            <textarea rows="3" formControlName="content" placeholder="Write a message" [class.invalid]="isInvalid('content')"></textarea>
+          </label>
+          @if (isInvalid('content')) {
+            <small>Message content is required and must not exceed 5000 characters.</small>
+          }
+          <button type="submit" class="primary" [disabled]="messageForm.invalid || isSending()">
+            {{ isSending() ? 'Sending...' : 'Send' }}
+          </button>
+        </form>
+      } @else {
+        <section class="empty-state thread-empty">
+          <h2>Select a conversation</h2>
+          <p>Choose an existing conversation or search for someone new.</p>
+        </section>
+      }
+    </section>
+  </section>
+</section>

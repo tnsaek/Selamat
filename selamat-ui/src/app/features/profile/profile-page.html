@@ -1,0 +1,168 @@
+<section class="profile-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">{{ isOwnProfile() ? 'Account' : 'User' }}</p>
+      <h1>{{ isOwnProfile() ? 'Profile' : 'User profile' }}</h1>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <p class="status-message">Loading profile...</p>
+  } @else {
+    @if (errorMessage()) {
+      <p class="alert error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (successMessage()) {
+      <p class="alert success" role="status">{{ successMessage() }}</p>
+    }
+
+    @if (viewedUser(); as user) {
+      <section class="summary">
+        @if (profile()?.coverImageUrl) {
+          <div class="cover-image">
+            <img [src]="profile()?.coverImageUrl" [alt]="(profile()?.displayName || user.username) + ' cover image'" />
+          </div>
+        }
+
+        <div class="avatar">
+          @if (profile()?.avatarUrl) {
+            <img [src]="profile()?.avatarUrl" [alt]="profile()?.displayName || user.username" />
+          } @else {
+            <span>{{ user.username.charAt(0).toUpperCase() }}</span>
+          }
+        </div>
+
+        <div>
+          <h2>{{ profile()?.displayName || user.username }}</h2>
+          <p>
+            {{ '@' + user.username }}
+            @if (isOwnProfile()) {
+              <span>&middot; {{ user.email }}</span>
+            }
+          </p>
+          @if (isOwnProfile()) {
+            <p class="roles">{{ user.roles.join(', ') }}</p>
+          }
+        </div>
+
+        @if (!isOwnProfile()) {
+          <div class="profile-actions">
+            @if (isFollowingViewedUser()) {
+              <button type="button" class="secondary" (click)="unfollowViewedUser()" [disabled]="isFollowChanging()">
+                {{ isFollowChanging() ? 'Saving...' : 'Unfollow' }}
+              </button>
+            } @else {
+              <button type="button" (click)="followViewedUser()" [disabled]="isFollowChanging()">
+                {{ isFollowChanging() ? 'Saving...' : 'Follow' }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (isOwnProfile()) {
+      <form class="profile-form" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+        <label>
+          <span>Display name</span>
+          <input type="text" formControlName="displayName" [class.invalid]="isInvalid('displayName')" />
+        </label>
+        @if (isInvalid('displayName')) {
+          <small>Display name must not exceed 100 characters.</small>
+        }
+
+        <label>
+          <span>Bio</span>
+          <textarea rows="4" formControlName="bio" [class.invalid]="isInvalid('bio')"></textarea>
+        </label>
+        @if (isInvalid('bio')) {
+          <small>Bio must not exceed 500 characters.</small>
+        }
+
+        <label>
+          <span>Profile image URL</span>
+          <input type="url" formControlName="avatarUrl" [class.invalid]="isInvalid('avatarUrl')" />
+        </label>
+        <label class="file-field">
+          <span>Upload profile image</span>
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onProfileImageSelected($event)"
+            [disabled]="isProfileImageUploading() || isSaving()"
+          />
+        </label>
+
+        <label>
+          <span>Cover image URL</span>
+          <input type="url" formControlName="coverImageUrl" [class.invalid]="isInvalid('coverImageUrl')" />
+        </label>
+        <label class="file-field">
+          <span>Upload cover image</span>
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onCoverImageSelected($event)"
+            [disabled]="isCoverImageUploading() || isSaving()"
+          />
+        </label>
+
+        <section class="address-fields" aria-label="Address">
+          <h2>Address</h2>
+          <div class="grid">
+            <label>
+              <span>Street</span>
+              <input type="text" formControlName="street" [class.invalid]="isInvalid('street')" />
+            </label>
+
+            <label>
+              <span>City</span>
+              <input type="text" formControlName="city" [class.invalid]="isInvalid('city')" />
+            </label>
+
+            <label>
+              <span>State</span>
+              <input type="text" formControlName="state" [class.invalid]="isInvalid('state')" />
+            </label>
+
+            <label>
+              <span>Country</span>
+              <input type="text" formControlName="country" [class.invalid]="isInvalid('country')" />
+            </label>
+          </div>
+        </section>
+
+        <label>
+          <span>Website URL</span>
+          <input type="url" formControlName="websiteUrl" [class.invalid]="isInvalid('websiteUrl')" />
+        </label>
+
+        <button type="submit" [disabled]="profileForm.invalid || isSaving()">
+          {{ isSaving() ? 'Saving...' : 'Save profile' }}
+        </button>
+      </form>
+    } @else {
+      <section class="profile-details">
+        <h2>About</h2>
+        <p>{{ profile()?.bio || 'No bio added yet.' }}</p>
+
+        <div class="detail-grid">
+          @if (profileAddress(profile()); as address) {
+            <div>
+              <span>Address</span>
+              <strong>{{ address }}</strong>
+            </div>
+          }
+
+          @if (profile()?.websiteUrl) {
+            <div>
+              <span>Website</span>
+              <a [href]="profile()?.websiteUrl" target="_blank" rel="noopener">{{ profile()?.websiteUrl }}</a>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</section>

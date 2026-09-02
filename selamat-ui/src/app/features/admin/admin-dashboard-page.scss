@@ -1,0 +1,185 @@
+:host {
+  display: block;
+}
+
+.admin-dashboard {
+  max-width: 960px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: #111827;
+  font-size: 30px;
+}
+
+h2 {
+  color: #111827;
+  font-size: 18px;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.overview div,
+.report-breakdown,
+.admin-section {
+  border: 1px solid #dfe4ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 6%);
+}
+
+.overview div {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.metric {
+  color: #1d4ed8;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.overview p,
+.report-breakdown dt,
+.admin-section p {
+  color: #475569;
+  line-height: 1.55;
+}
+
+.report-breakdown {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 18px;
+}
+
+.report-breakdown dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.report-breakdown div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.report-breakdown dt,
+.report-breakdown dd {
+  margin: 0;
+}
+
+.report-breakdown dd {
+  color: #111827;
+  font-weight: 800;
+}
+
+.alert {
+  margin: 0 0 18px;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.alert.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-section {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding: 18px;
+}
+
+.admin-section header div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-section span {
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.admin-section span.planned {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+a,
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+button {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 840px) {
+  .overview,
+  .report-breakdown dl,
+  .section-grid {
+    grid-template-columns: 1fr;
+  }
+}

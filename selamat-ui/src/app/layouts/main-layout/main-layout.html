@@ -1,0 +1,42 @@
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Primary navigation">
+    <div>
+      <a class="brand" routerLink="/feed">Selamat</a>
+      <nav>
+        <a routerLink="/feed" routerLinkActive="active">Feed</a>
+        <a routerLink="/profile" routerLinkActive="active">Profile</a>
+        <a routerLink="/discover" routerLinkActive="active">Discover</a>
+        <a routerLink="/messages" routerLinkActive="active">Messages</a>
+        <a routerLink="/notifications" routerLinkActive="active">
+          <span>Notifications</span>
+          @if (unreadNotificationCount() > 0) {
+            <span class="badge">{{ unreadNotificationCount() > 99 ? '99+' : unreadNotificationCount() }}</span>
+          }
+        </a>
+        @if (canAccessAdmin()) {
+          <a routerLink="/admin" routerLinkActive="active">Admin</a>
+        }
+      </nav>
+    </div>
+
+    <footer class="user-panel">
+      @if (currentUser(); as user) {
+        <div class="user-summary">
+          <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+          <div>
+            <p class="username">{{ user.username }}</p>
+            <p class="email">{{ user.email }}</p>
+          </div>
+        </div>
+      }
+
+      <button type="button" (click)="logout()" [disabled]="isLoggingOut()">
+        {{ isLoggingOut() ? 'Logging out...' : 'Logout' }}
+      </button>
+    </footer>
+  </aside>
+
+  <section class="content">
+    <router-outlet />
+  </section>
+</div>

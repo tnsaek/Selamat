@@ -1,0 +1,67 @@
+<section class="discover-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">People</p>
+      <h1>Discover</h1>
+    </div>
+  </header>
+
+  <section class="search-panel">
+    <form [formGroup]="searchForm">
+      <label>
+        <span>Search users</span>
+        <input type="search" formControlName="query" placeholder="Search by username, name, or email" />
+      </label>
+    </form>
+  </section>
+
+  @if (errorMessage()) {
+    <p class="alert error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (isSearching()) {
+    <p class="status-message">Searching users...</p>
+  } @else if (searchForm.controls.query.value.trim().length < 2) {
+    <section class="empty-state">
+      <h2>Find people</h2>
+      <p>Type at least two characters to search for users.</p>
+    </section>
+  } @else if (users().length === 0) {
+    <section class="empty-state">
+      <h2>No users found</h2>
+      <p>Try a different username, name, or email.</p>
+    </section>
+  } @else {
+    <div class="user-grid">
+      @for (user of users(); track trackUser($index, user)) {
+        <article class="user-card">
+          <div class="avatar">
+            @if (user.avatarUrl) {
+              <img [src]="user.avatarUrl" [alt]="user.displayName || user.username" />
+            } @else {
+              <span>{{ user.username.charAt(0).toUpperCase() }}</span>
+            }
+          </div>
+
+          <div class="user-details">
+            <h2>{{ user.displayName || user.username }}</h2>
+            <p>{{ '@' + user.username }}</p>
+          </div>
+
+          <div class="actions">
+            <a [routerLink]="['/profile']" [queryParams]="{ userId: user.id }">View profile</a>
+            @if (followingByUserId()[user.id]) {
+              <button type="button" class="secondary" (click)="unfollowUser(user)" [disabled]="changingFollowByUserId()[user.id]">
+                {{ changingFollowByUserId()[user.id] ? 'Saving...' : 'Unfollow' }}
+              </button>
+            } @else {
+              <button type="button" (click)="followUser(user)" [disabled]="changingFollowByUserId()[user.id]">
+                {{ changingFollowByUserId()[user.id] ? 'Saving...' : 'Follow' }}
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,74 @@
+@startuml
+title Notification Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Actor User" as ActorUser
+participant "Source Service" as SourceService
+participant "NotificationService" as NotificationService
+participant "NotificationRepository" as NotificationRepository
+database "MySQL" as MySQL
+actor "Recipient User" as RecipientUser
+participant "Angular Notifications UI" as RecipientApp
+participant "Security Filter" as Security
+participant "NotificationController" as NotificationController
+
+== Notification Creation ==
+
+ActorUser -> SourceService: Follow, comment, react, or send message
+SourceService -> NotificationService: createNotification(...)
+NotificationService -> NotificationService: Build title, body, targetType, targetId
+NotificationService -> NotificationRepository: save(notification unread)
+NotificationRepository -> MySQL: Insert notifications row
+MySQL --> NotificationRepository: Notification saved
+NotificationService --> SourceService: Notification persisted
+
+== Load Notification Count ==
+
+RecipientUser -> RecipientApp: Use app shell
+RecipientApp -> Security: GET /notifications/unread-count
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> RecipientApp: 401 Unauthorized
+  RecipientApp --> RecipientUser: Redirect to login
+else Token valid
+  Security -> NotificationController: Authenticated count request
+  NotificationController -> NotificationService: getUnreadCount(currentUser)
+  NotificationService -> NotificationRepository: count unread by recipient
+  NotificationRepository -> MySQL: Query notifications
+  MySQL --> NotificationRepository: Count
+  NotificationService --> NotificationController: Count response
+  NotificationController --> RecipientApp: 200 OK
+  RecipientApp --> RecipientUser: Show unread badge
+end
+
+== Open Notifications ==
+
+RecipientUser -> RecipientApp: Open notifications page
+RecipientApp -> Security: GET /notifications
+Security -> NotificationController: Authenticated list request
+NotificationController -> NotificationService: getNotifications(currentUser)
+NotificationService -> NotificationRepository: Load notifications
+NotificationRepository -> MySQL: Query notifications
+MySQL --> NotificationRepository: Notification list
+NotificationService --> NotificationController: Notification page
+NotificationController --> RecipientApp: 200 OK
+RecipientApp --> RecipientUser: Display notifications
+
+== Mark Read And Navigate ==
+
+RecipientUser -> RecipientApp: Click notification
+RecipientApp -> Security: PATCH /notifications/{id}/read
+Security -> NotificationController: Authenticated read request
+NotificationController -> NotificationService: markAsRead(id, currentUser)
+NotificationService -> NotificationRepository: Load and update notification
+NotificationRepository -> MySQL: Update is_read and read_at
+MySQL --> NotificationRepository: Updated notification
+NotificationService --> NotificationController: Updated notification
+NotificationController --> RecipientApp: 200 OK
+RecipientApp -> RecipientApp: Navigate by targetType/targetId
+RecipientApp --> RecipientUser: Open target post, message, or profile
+
+@enduml

@@ -1,0 +1,62 @@
+<section class="admin-dashboard">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Admin Dashboard</h1>
+    </div>
+  </header>
+
+  <section class="overview">
+    @for (metric of metrics(); track trackMetric($index, metric)) {
+      <div>
+        <span class="metric">{{ isLoadingSummary() ? '...' : metric.value }}</span>
+        <p>{{ metric.label }}</p>
+      </div>
+    }
+  </section>
+
+  @if (summary(); as reportSummary) {
+    <section class="report-breakdown">
+      <h2>Report Queue</h2>
+      <dl>
+        <div>
+          <dt>User reports</dt>
+          <dd>{{ reportSummary.userReports }}</dd>
+        </div>
+        <div>
+          <dt>Content reports</dt>
+          <dd>{{ reportSummary.contentReports }}</dd>
+        </div>
+        <div>
+          <dt>Rejected reports</dt>
+          <dd>{{ reportSummary.rejectedReports }}</dd>
+        </div>
+      </dl>
+    </section>
+  }
+
+  @if (summaryError()) {
+    <p class="alert error" role="alert">{{ summaryError() }}</p>
+  }
+
+  <div class="section-grid">
+    @for (section of sections; track trackSection($index, section)) {
+      <article class="admin-section">
+        <header>
+          <div>
+            <h2>{{ section.title }}</h2>
+            <span [class.planned]="section.status === 'Planned'">{{ section.status }}</span>
+          </div>
+        </header>
+
+        <p>{{ section.description }}</p>
+
+        @if (section.route) {
+          <a [routerLink]="section.route">{{ section.action }}</a>
+        } @else {
+          <button type="button" disabled>{{ section.action }}</button>
+        }
+      </article>
+    }
+  </div>
+</section>

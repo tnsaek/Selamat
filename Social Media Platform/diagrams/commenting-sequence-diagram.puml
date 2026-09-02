@@ -1,0 +1,50 @@
+@startuml
+title Commenting Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Feed/Post View" as Frontend
+participant "Security Filter" as Security
+participant "CommentController" as CommentController
+participant "CommentService" as CommentService
+participant "PostRepository" as PostRepository
+participant "CommentRepository" as CommentRepository
+participant "NotificationService" as NotificationService
+database "MySQL" as MySQL
+
+User -> Frontend: Write and submit comment
+Frontend -> Security: POST /posts/{postId}/comments
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> Frontend: 401 Unauthorized
+  Frontend --> User: Redirect to login
+else Token valid
+  Security -> CommentController: Authenticated create comment request
+  CommentController -> CommentService: createComment(postId, request, currentUser)
+  CommentService -> PostRepository: findById(postId)
+  PostRepository -> MySQL: Query posts
+  MySQL --> PostRepository: Post or empty
+
+  alt Post missing or unavailable
+    CommentService --> CommentController: not found/access error
+    CommentController --> Frontend: 404 Not Found
+    Frontend --> User: Show post unavailable
+  else Post available
+    CommentService -> CommentService: Validate content and parent comment
+    CommentService -> CommentRepository: save(comment)
+    CommentRepository -> MySQL: Insert comments row
+    MySQL --> CommentRepository: Saved comment
+    CommentService -> PostRepository: Increment comment count
+    PostRepository -> MySQL: Update posts.comment_count
+    CommentService -> NotificationService: Create comment notification
+    NotificationService -> MySQL: Insert notifications row
+    CommentService --> CommentController: Comment response
+    CommentController --> Frontend: 201 Created
+    Frontend --> User: Display new comment
+  end
+end
+
+@enduml

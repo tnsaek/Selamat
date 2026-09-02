@@ -1,0 +1,285 @@
+@startuml
+title Selamat Social Media Platform - Core Backend Entities
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+
+class User {
+  +UUID id
+  +String username
+  +String email
+  +String passwordHash
+  +UserStatus status
+  +Instant createdAt
+  +Instant updatedAt
+}
+
+class Profile {
+  +UUID id
+  +String displayName
+  +String bio
+  +String avatarUrl
+  +String coverImageUrl
+  +String street
+  +String city
+  +String state
+  +String country
+  +String websiteUrl
+  +Instant createdAt
+  +Instant updatedAt
+}
+
+class Role {
+  +UUID id
+  +String name
+  +String description
+  +Instant createdAt
+}
+
+class UserRole {
+  +UserRoleId id
+  +Instant assignedAt
+}
+
+class UserRoleId {
+  +UUID userId
+  +UUID roleId
+}
+
+class RefreshToken {
+  +UUID id
+  +String tokenHash
+  +Instant expiresAt
+  +Instant revokedAt
+  +Instant createdAt
+  +boolean isRevoked()
+  +boolean isExpired()
+}
+
+class PasswordResetToken {
+  +UUID id
+  +String tokenHash
+  +Instant expiresAt
+  +Instant usedAt
+  +Instant createdAt
+  +boolean isUsed()
+  +boolean isExpired()
+}
+
+class Post {
+  +UUID id
+  +String content
+  +PostVisibility visibility
+  +PostStatus status
+  +Long commentCount
+  +Long reactionCount
+  +Instant createdAt
+  +Instant updatedAt
+}
+
+class Media {
+  +UUID id
+  +String url
+  +MediaType mediaType
+  +String mimeType
+  +Long sizeBytes
+  +String altText
+  +MediaStatus status
+  +Instant createdAt
+}
+
+class Comment {
+  +UUID id
+  +String content
+  +CommentStatus status
+  +Long reactionCount
+  +Instant createdAt
+  +Instant updatedAt
+}
+
+class Reaction {
+  +UUID id
+  +ReactionType reactionType
+  +Instant createdAt
+}
+
+class Follow {
+  +UUID id
+  +FollowStatus status
+  +Instant createdAt
+  +Instant updatedAt
+}
+
+class Message {
+  +UUID id
+  +String content
+  +MessageStatus status
+  +Instant sentAt
+  +Instant deliveredAt
+  +Instant readAt
+}
+
+class Notification {
+  +UUID id
+  +NotificationType notificationType
+  +String title
+  +String body
+  +String targetType
+  +UUID targetId
+  +Boolean read
+  +Instant createdAt
+  +Instant readAt
+}
+
+class Report {
+  +UUID id
+  +ReportTargetType targetType
+  +UUID targetId
+  +String reason
+  +String details
+  +String resolutionNote
+  +ReportStatus status
+  +Instant createdAt
+  +Instant resolvedAt
+}
+
+class ModerationAuditLog {
+  +UUID id
+  +String action
+  +ReportTargetType targetType
+  +UUID targetId
+  +Instant createdAt
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PostVisibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  DELETED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum MediaStatus {
+  VISIBLE
+  HIDDEN
+  DELETED
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
+  DELETED
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  SAD
+  ANGRY
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  DELETED
+}
+
+enum NotificationType {
+  FOLLOW
+  COMMENT
+  REACTION
+  MESSAGE
+  REPORT_UPDATE
+  SYSTEM
+}
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  MESSAGE
+  MEDIA
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+User "1" -- "0..1" Profile : owns
+User "1" -- "0..*" UserRole : assigned
+Role "1" -- "0..*" UserRole : grants
+UserRole *-- UserRoleId
+
+User "1" -- "0..*" RefreshToken : has
+User "1" -- "0..*" PasswordResetToken : has
+
+User "1" -- "0..*" Post : authors
+User "1" -- "0..*" Media : uploads
+Post "1" -- "0..*" Media : contains
+
+Post "1" -- "0..*" Comment : has
+User "1" -- "0..*" Comment : writes
+Comment "0..1" -- "0..*" Comment : replies
+
+User "1" -- "0..*" Reaction : makes
+Post "0..1" -- "0..*" Reaction : receives
+Comment "0..1" -- "0..*" Reaction : receives
+
+User "1" -- "0..*" Follow : follower
+User "1" -- "0..*" Follow : followed
+
+User "1" -- "0..*" Message : sends
+User "1" -- "0..*" Message : receives
+
+User "1" -- "0..*" Notification : receives
+User "0..1" -- "0..*" Notification : triggers
+
+User "1" -- "0..*" Report : submits
+User "0..1" -- "0..*" Report : resolves
+
+User "1" -- "0..*" ModerationAuditLog : performs
+
+User ..> UserStatus
+Post ..> PostVisibility
+Post ..> PostStatus
+Media ..> MediaType
+Media ..> MediaStatus
+Comment ..> CommentStatus
+Reaction ..> ReactionType
+Follow ..> FollowStatus
+Message ..> MessageStatus
+Notification ..> NotificationType
+Report ..> ReportTargetType
+Report ..> ReportStatus
+ModerationAuditLog ..> ReportTargetType
+
+@enduml

@@ -1,0 +1,289 @@
+:host {
+  display: block;
+}
+
+.profile-page {
+  max-width: 880px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: #111827;
+  font-size: 30px;
+}
+
+.status-message,
+.alert {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.status-message {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.alert.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.alert.success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.summary,
+.profile-form,
+.profile-details {
+  border: 1px solid #dfe4ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 6%);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.cover-image {
+  grid-column: 1 / -1;
+  width: 100%;
+  aspect-ratio: 4 / 1;
+  min-height: 140px;
+  max-height: 260px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e2e8f0;
+}
+
+.cover-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.summary h2 {
+  color: #111827;
+  font-size: 22px;
+}
+
+.summary p {
+  margin-top: 5px;
+  color: #475569;
+}
+
+.roles {
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.profile-actions {
+  justify-self: end;
+}
+
+.profile-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.profile-details {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.profile-details p {
+  color: #334155;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.address-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.address-fields h2 {
+  color: #111827;
+  font-size: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.detail-grid div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.detail-grid span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-grid strong,
+.detail-grid a {
+  color: #111827;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+input,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #111827;
+  font: inherit;
+  outline: none;
+}
+
+input {
+  min-height: 44px;
+}
+
+input[type='file'] {
+  min-height: auto;
+  padding: 9px 12px;
+  background: #f8fafc;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.file-field {
+  margin-top: -8px;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+}
+
+.invalid {
+  border-color: #dc2626;
+}
+
+small {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+button {
+  width: fit-content;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #2563eb;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.secondary {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+@media (max-width: 720px) {
+  .grid,
+  .detail-grid,
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .summary {
+    align-items: flex-start;
+  }
+
+  .profile-actions,
+  button {
+    width: 100%;
+  }
+}

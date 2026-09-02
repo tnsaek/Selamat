@@ -1,0 +1,61 @@
+@startuml
+title Send Message Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Sender" as Sender
+participant "Angular Messages Page" as SenderApp
+participant "Security Filter" as Security
+participant "MessageController" as MessageController
+participant "MessageService" as MessageService
+participant "UserRepository" as UserRepository
+participant "MessageRepository" as MessageRepository
+participant "NotificationService" as NotificationService
+database "MySQL" as MySQL
+actor "Recipient" as Recipient
+participant "Angular Messages/Notifications Page" as RecipientApp
+
+Sender -> SenderApp: Write message
+Sender -> SenderApp: Click send
+SenderApp -> Security: POST /messages
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> SenderApp: 401 Unauthorized
+  SenderApp --> Sender: Redirect to login
+else Token valid
+  Security -> MessageController: Authenticated send message request
+  MessageController -> MessageService: sendMessage(request, currentUser)
+  MessageService -> UserRepository: find recipient
+  UserRepository -> MySQL: Query users
+  MySQL --> UserRepository: Recipient or empty
+
+  alt Recipient missing or same as sender
+    MessageService --> MessageController: validation/business error
+    MessageController --> SenderApp: 400/404 Error
+    SenderApp --> Sender: Show send error
+  else Recipient valid
+    MessageService -> MessageRepository: save(message)
+    MessageRepository -> MySQL: Insert messages row
+    MySQL --> MessageRepository: Message saved
+    MessageService -> NotificationService: Create message notification
+    NotificationService -> MySQL: Insert notifications row
+    MessageService --> MessageController: Message response
+    MessageController --> SenderApp: 201 Created
+    SenderApp --> Sender: Show message as sent
+  end
+end
+
+Recipient -> RecipientApp: Open conversation or notifications
+RecipientApp -> Security: GET /messages/conversations/{senderId}
+Security -> MessageController: Authenticated conversation request
+MessageController -> MessageService: getConversation(currentUser, sender)
+MessageService -> MessageRepository: Load messages
+MessageRepository -> MySQL: Query messages by sender/recipient pair
+MySQL --> MessageRepository: Conversation messages
+MessageService --> MessageController: Conversation response
+MessageController --> RecipientApp: 200 OK
+RecipientApp --> Recipient: Display message
+
+@enduml

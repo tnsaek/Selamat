@@ -1,0 +1,81 @@
+@startuml
+title Report Content And Admin Review Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Feed/Profile UI" as Frontend
+participant "Security Filter" as Security
+participant "ReportController" as ReportController
+participant "ReportService" as ReportService
+participant "ReportRepository" as ReportRepository
+database "MySQL" as MySQL
+actor "Admin / Moderator" as Moderator
+participant "Angular Admin Reports Page" as AdminUi
+participant "AdminReportController" as AdminController
+participant "AdminReportService" as AdminService
+participant "ModerationAuditLogRepository" as AuditRepository
+participant "PostRepository / CommentRepository / MediaRepository" as TargetRepositories
+
+== Submit Report ==
+
+User -> Frontend: Select report action
+Frontend --> User: Show report form
+User -> Frontend: Submit reason and details
+Frontend -> Security: POST /reports
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> Frontend: 401 Unauthorized
+  Frontend --> User: Redirect to login
+else Token valid
+  Security -> ReportController: Authenticated report request
+  ReportController -> ReportService: createReport(request, currentUser)
+  ReportService -> ReportService: Validate targetType, targetId, reason
+  ReportService -> ReportRepository: Check duplicate open report
+  ReportRepository -> MySQL: Query reports
+  MySQL --> ReportRepository: Duplicate or empty
+
+  alt Duplicate open report exists
+    ReportService --> ReportController: BusinessRuleException
+    ReportController --> Frontend: 409 Conflict
+    Frontend --> User: Show already reported message
+  else No duplicate report
+    ReportService -> ReportRepository: save(OPEN report)
+    ReportRepository -> MySQL: Insert reports row
+    MySQL --> ReportRepository: Report saved
+    ReportService --> ReportController: Report response
+    ReportController --> Frontend: 201 Created
+    Frontend --> User: Show report submitted
+  end
+end
+
+== Admin Review ==
+
+Moderator -> AdminUi: Open admin reports page
+AdminUi -> Security: GET /admin/reports
+Security -> AdminController: Authenticated admin request
+AdminController -> AdminService: getReports(filters, pageable)
+AdminService -> ReportRepository: Load reports
+ReportRepository -> MySQL: Query reports
+MySQL --> ReportRepository: Report page
+AdminService --> AdminController: Report page
+AdminController --> AdminUi: 200 OK
+AdminUi --> Moderator: Display moderation queue
+
+Moderator -> AdminUi: Resolve or moderate target
+AdminUi -> Security: POST /admin/reports/{id}/resolve or moderation action
+Security -> AdminController: Authenticated admin action
+AdminController -> AdminService: resolveReport/moderateTarget(...)
+AdminService -> ReportRepository: Update status, resolver, note
+ReportRepository -> MySQL: Update reports row
+AdminService -> TargetRepositories: Hide/delete/restore target when requested
+TargetRepositories -> MySQL: Update target status
+AdminService -> AuditRepository: save audit log
+AuditRepository -> MySQL: Insert moderation_audit_logs row
+AdminService --> AdminController: Updated report/action response
+AdminController --> AdminUi: 200 OK
+AdminUi --> Moderator: Update report status
+
+@enduml

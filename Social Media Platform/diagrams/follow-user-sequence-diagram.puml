@@ -1,0 +1,57 @@
+@startuml
+title Follow User Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Profile/Discover Page" as Frontend
+participant "Security Filter" as Security
+participant "FollowController" as FollowController
+participant "FollowService" as FollowService
+participant "UserRepository" as UserRepository
+participant "FollowRepository" as FollowRepository
+participant "NotificationService" as NotificationService
+database "MySQL" as MySQL
+
+User -> Frontend: Click follow
+Frontend -> Security: POST /users/{targetUserId}/follow
+Security -> Security: Validate Bearer JWT
+
+alt Token invalid or expired
+  Security --> Frontend: 401 Unauthorized
+  Frontend --> User: Redirect to login
+else Token valid
+  Security -> FollowController: Authenticated follow request
+  FollowController -> FollowService: followUser(currentUserId, targetUserId)
+  FollowService -> UserRepository: find current user and target user
+  UserRepository -> MySQL: Query users
+  MySQL --> UserRepository: Users or empty
+
+  alt Target missing or self-follow
+    FollowService --> FollowController: validation/business error
+    FollowController --> Frontend: 400/404 Error
+    Frontend --> User: Show follow error
+  else Target can be followed
+    FollowService -> FollowRepository: findByFollowerAndFollowed
+    FollowRepository -> MySQL: Query follows
+    MySQL --> FollowRepository: Existing follow or empty
+
+    alt Already following
+      FollowService --> FollowController: BusinessRuleException
+      FollowController --> Frontend: 409 Conflict
+      Frontend --> User: Keep following state
+    else No existing follow
+      FollowService -> FollowRepository: save(ACCEPTED follow)
+      FollowRepository -> MySQL: Insert follows row
+      MySQL --> FollowRepository: Follow saved
+      FollowService -> NotificationService: Create follow notification
+      NotificationService -> MySQL: Insert notifications row
+      FollowService --> FollowController: Follow response
+      FollowController --> Frontend: 201 Created
+      Frontend --> User: Show following state
+    end
+  end
+end
+
+@enduml

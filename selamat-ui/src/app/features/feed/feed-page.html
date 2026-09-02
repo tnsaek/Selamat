@@ -1,0 +1,427 @@
+<section class="feed-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Home</p>
+      <h1>Feed</h1>
+    </div>
+    <button type="button" class="secondary" (click)="loadFeed()" [disabled]="isLoading()">Refresh</button>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="alert error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <section class="composer">
+    <form [formGroup]="postForm" (ngSubmit)="createPost()" novalidate>
+      <label class="composer-content">
+        <span>Create post</span>
+        <textarea
+          rows="4"
+          formControlName="content"
+          placeholder="Share something with your network"
+          [class.invalid]="postForm.controls.content.invalid && postForm.controls.content.touched"
+        ></textarea>
+      </label>
+      @if (postForm.controls.content.invalid && postForm.controls.content.touched) {
+        <small>Post content must not exceed 5000 characters.</small>
+      }
+
+      @if (composerError()) {
+        <p class="alert error" role="alert">{{ composerError() }}</p>
+      }
+
+      @if (selectedFiles().length > 0) {
+        <div class="selected-media">
+          @for (selectedFile of selectedFiles(); track trackSelectedFile($index, selectedFile)) {
+            <div class="selected-file">
+              @if (selectedFile.previewUrl) {
+                <img [src]="selectedFile.previewUrl" [alt]="selectedFile.file.name" />
+              } @else {
+                <span class="file-icon">{{ selectedFile.file.name }}</span>
+              }
+              <button type="button" class="remove-file" (click)="removeSelectedFile($index)">Remove</button>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="composer-actions">
+        <label class="file-picker">
+          <span>Add media</span>
+          <input type="file" multiple accept="image/*,video/*,audio/*,application/pdf" (change)="selectFiles($event)" />
+        </label>
+
+        <label class="visibility">
+          <select formControlName="visibility" aria-label="Post visibility">
+            <option value="PUBLIC">Public</option>
+            <option value="FOLLOWERS_ONLY">Followers only</option>
+            <option value="PRIVATE">Private</option>
+          </select>
+        </label>
+
+        <button type="submit" class="primary" [disabled]="postForm.invalid || isCreatingPost()">
+          {{ isCreatingPost() ? 'Posting...' : 'Post' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  @if (isLoading()) {
+    <p class="status-message">Loading feed...</p>
+  } @else if (isLoadingTargetPost()) {
+    <p class="status-message">Loading selected post...</p>
+  } @else if (posts().length === 0) {
+    <section class="empty-state">
+      <h2>No posts yet</h2>
+      <p>Posts from you and people you follow will appear here.</p>
+    </section>
+  } @else {
+    <div class="post-list">
+      @for (post of posts(); track trackPost($index, post)) {
+        <article class="post-card" [id]="'post-' + post.id" [class.target-post]="isTargetPost(post)">
+          <header class="post-header">
+            <div class="avatar">
+              @if (post.author.avatarUrl) {
+                <img [src]="post.author.avatarUrl" [alt]="post.author.displayName || post.author.username" />
+              } @else {
+                <span>{{ post.author.username.charAt(0).toUpperCase() }}</span>
+              }
+            </div>
+
+            <div>
+              <h2>{{ post.author.displayName || post.author.username }}</h2>
+              <p>{{ '@' + post.author.username }} &middot; {{ createdDate(post) }}</p>
+            </div>
+          </header>
+
+          @if (post.content) {
+            <p class="content">{{ post.content }}</p>
+          }
+
+          @if (post.media.length > 0) {
+            <div class="media-grid">
+              @for (media of post.media; track media.id) {
+                @if (media.mediaType === 'IMAGE') {
+                  <img [src]="media.url" [alt]="media.altText || 'Post image'" />
+                } @else {
+                  <a [href]="media.url" target="_blank" rel="noopener">
+                    {{ media.mediaType | titlecase }} attachment
+                  </a>
+                }
+              }
+            </div>
+          }
+
+          <footer class="post-meta">
+            <span>{{ post.reactionCount }} reactions</span>
+            <span>{{ post.commentCount }} comments</span>
+            @if (post.viewerReaction) {
+              <span>You reacted: {{ post.viewerReaction }}</span>
+            }
+          </footer>
+
+          <div class="post-actions">
+            <button type="button" class="action-button" (click)="toggleReaction(post)" [disabled]="reactingPostIds()[post.id]">
+              {{ post.viewerReaction ? 'Remove reaction' : 'Like' }}
+            </button>
+            <button
+              type="button"
+              class="action-button"
+              (click)="loadComments(post.id)"
+              [disabled]="loadingCommentsByPostId()[post.id]"
+            >
+              {{ commentsByPostId()[post.id] ? 'Refresh comments' : 'View comments' }}
+            </button>
+            @if (isOwnPost(post)) {
+              <button
+                type="button"
+                class="danger-button"
+                (click)="deletePost(post)"
+                [disabled]="deletingPostIds()[post.id]"
+              >
+                {{ deletingPostIds()[post.id] ? 'Deleting...' : 'Delete' }}
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="action-button"
+                (click)="toggleReportForm(post)"
+                [disabled]="reportedPostIds()[post.id]"
+              >
+                {{ reportedPostIds()[post.id] ? 'Reported' : 'Report' }}
+              </button>
+            }
+          </div>
+
+          @if (reportFormOpenByPostId()[post.id]) {
+            <section class="report-form" aria-label="Report post">
+              <label>
+                <span>Reason</span>
+                <select [value]="reportDraftByPostId()[post.id]?.reason || ''" (change)="updateReportReason(post.id, $event)">
+                  <option value="">Select a reason</option>
+                  <option value="Spam">Spam</option>
+                  <option value="Harassment">Harassment</option>
+                  <option value="Hate speech">Hate speech</option>
+                  <option value="Violence">Violence</option>
+                  <option value="False information">False information</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Details</span>
+                <textarea
+                  rows="3"
+                  placeholder="Add optional details"
+                  [value]="reportDraftByPostId()[post.id]?.details || ''"
+                  (input)="updateReportDetails(post.id, $event)"
+                ></textarea>
+              </label>
+
+              <div class="report-actions">
+                <button
+                  type="button"
+                  class="primary"
+                  (click)="submitReport(post)"
+                  [disabled]="!reportDraftByPostId()[post.id]?.reason || reportingPostIds()[post.id]"
+                >
+                  {{ reportingPostIds()[post.id] ? 'Submitting...' : 'Submit report' }}
+                </button>
+                <button type="button" class="action-button" (click)="toggleReportForm(post)">Cancel</button>
+              </div>
+            </section>
+          }
+
+          <section class="comments">
+            <div class="comment-form">
+              <textarea
+                rows="2"
+                placeholder="Write a comment"
+                [value]="commentInputByPostId()[post.id] || ''"
+                (input)="updateCommentInput(post.id, $event)"
+              ></textarea>
+              <button
+                type="button"
+                class="primary"
+                (click)="createComment(post.id)"
+                [disabled]="!commentInputByPostId()[post.id]?.trim() || submittingCommentByPostId()[post.id]"
+              >
+                {{ submittingCommentByPostId()[post.id] ? 'Commenting...' : 'Comment' }}
+              </button>
+            </div>
+
+            @if (commentErrorByPostId()[post.id]) {
+              <p class="comment-error" role="alert">{{ commentErrorByPostId()[post.id] }}</p>
+            }
+
+            @if (loadingCommentsByPostId()[post.id]) {
+              <p class="comments-status">Loading comments...</p>
+            }
+
+            @if (commentsByPostId()[post.id]; as comments) {
+              @if (parentComments(post.id).length > 0) {
+                <div class="comment-list">
+                  @for (comment of parentComments(post.id); track trackComment($index, comment)) {
+                    <article class="comment" [id]="'comment-' + comment.id">
+                      <div class="comment-header">
+                        <p class="comment-author">{{ comment.author.displayName || comment.author.username }}</p>
+                        <div class="comment-actions">
+                          <button type="button" class="comment-action-button" (click)="toggleReplyForm(comment)">
+                            Reply{{ commentReplyCount(post.id, comment.id) > 0 ? ' (' + commentReplyCount(post.id, comment.id) + ')' : '' }}
+                          </button>
+                          @if (!isOwnComment(comment)) {
+                            <button
+                              type="button"
+                              class="comment-action-button"
+                              (click)="toggleCommentReportForm(comment)"
+                              [disabled]="reportedCommentIds()[comment.id]"
+                            >
+                              {{ reportedCommentIds()[comment.id] ? 'Reported' : 'Report' }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                      <p class="comment-content">{{ comment.content }}</p>
+
+                      @if (replyFormOpenByCommentId()[comment.id]) {
+                        <section class="reply-form" aria-label="Reply to comment">
+                          <textarea
+                            rows="2"
+                            placeholder="Write a reply"
+                            [value]="replyInputByCommentId()[comment.id] || ''"
+                            (input)="updateReplyInput(comment.id, $event)"
+                          ></textarea>
+                          <div class="reply-actions">
+                            <button
+                              type="button"
+                              class="primary"
+                              (click)="createReply(post.id, comment)"
+                              [disabled]="!replyInputByCommentId()[comment.id]?.trim() || submittingReplyByCommentId()[comment.id]"
+                            >
+                              {{ submittingReplyByCommentId()[comment.id] ? 'Replying...' : 'Reply' }}
+                            </button>
+                            <button type="button" class="action-button" (click)="toggleReplyForm(comment)">Cancel</button>
+                          </div>
+                          @if (replyErrorByCommentId()[comment.id]) {
+                            <p class="comment-error" role="alert">{{ replyErrorByCommentId()[comment.id] }}</p>
+                          }
+                        </section>
+                      }
+
+                      @if (repliesForComment(post.id, comment.id).length > 0) {
+                        <div class="reply-list">
+                          @for (reply of repliesForComment(post.id, comment.id); track trackComment($index, reply)) {
+                            <article class="comment reply" [id]="'comment-' + reply.id">
+                              <div class="comment-header">
+                                <p class="comment-author">{{ reply.author.displayName || reply.author.username }}</p>
+                                @if (!isOwnComment(reply)) {
+                                  <button
+                                    type="button"
+                                    class="comment-action-button"
+                                    (click)="toggleCommentReportForm(reply)"
+                                    [disabled]="reportedCommentIds()[reply.id]"
+                                  >
+                                    {{ reportedCommentIds()[reply.id] ? 'Reported' : 'Report' }}
+                                  </button>
+                                }
+                              </div>
+                              <p class="comment-content">{{ reply.content }}</p>
+
+                              @if (commentReportFormOpenByCommentId()[reply.id]) {
+                                <section class="report-form compact" aria-label="Report reply">
+                                  <label>
+                                    <span>Reason</span>
+                                    <select
+                                      [value]="commentReportDraftByCommentId()[reply.id]?.reason || ''"
+                                      (change)="updateCommentReportReason(reply.id, $event)"
+                                    >
+                                      <option value="">Select a reason</option>
+                                      <option value="Spam">Spam</option>
+                                      <option value="Harassment">Harassment</option>
+                                      <option value="Hate speech">Hate speech</option>
+                                      <option value="Violence">Violence</option>
+                                      <option value="False information">False information</option>
+                                      <option value="Other">Other</option>
+                                    </select>
+                                  </label>
+
+                                  <label>
+                                    <span>Details</span>
+                                    <textarea
+                                      rows="2"
+                                      placeholder="Add optional details"
+                                      [value]="commentReportDraftByCommentId()[reply.id]?.details || ''"
+                                      (input)="updateCommentReportDetails(reply.id, $event)"
+                                    ></textarea>
+                                  </label>
+
+                                  <div class="report-actions">
+                                    <button
+                                      type="button"
+                                      class="primary"
+                                      (click)="submitCommentReport(reply)"
+                                      [disabled]="!commentReportDraftByCommentId()[reply.id]?.reason || reportingCommentIds()[reply.id]"
+                                    >
+                                      {{ reportingCommentIds()[reply.id] ? 'Submitting...' : 'Submit report' }}
+                                    </button>
+                                    <button type="button" class="action-button" (click)="toggleCommentReportForm(reply)">Cancel</button>
+                                  </div>
+                                </section>
+                              }
+                            </article>
+                          }
+                        </div>
+                      }
+
+                      @if (commentReportFormOpenByCommentId()[comment.id]) {
+                        <section class="report-form compact" aria-label="Report comment">
+                          <label>
+                            <span>Reason</span>
+                            <select
+                              [value]="commentReportDraftByCommentId()[comment.id]?.reason || ''"
+                              (change)="updateCommentReportReason(comment.id, $event)"
+                            >
+                              <option value="">Select a reason</option>
+                              <option value="Spam">Spam</option>
+                              <option value="Harassment">Harassment</option>
+                              <option value="Hate speech">Hate speech</option>
+                              <option value="Violence">Violence</option>
+                              <option value="False information">False information</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </label>
+
+                          <label>
+                            <span>Details</span>
+                            <textarea
+                              rows="2"
+                              placeholder="Add optional details"
+                              [value]="commentReportDraftByCommentId()[comment.id]?.details || ''"
+                              (input)="updateCommentReportDetails(comment.id, $event)"
+                            ></textarea>
+                          </label>
+
+                          <div class="report-actions">
+                            <button
+                              type="button"
+                              class="primary"
+                              (click)="submitCommentReport(comment)"
+                              [disabled]="!commentReportDraftByCommentId()[comment.id]?.reason || reportingCommentIds()[comment.id]"
+                            >
+                              {{ reportingCommentIds()[comment.id] ? 'Submitting...' : 'Submit report' }}
+                            </button>
+                            <button type="button" class="action-button" (click)="toggleCommentReportForm(comment)">Cancel</button>
+                          </div>
+                        </section>
+                      }
+                    </article>
+                  }
+                </div>
+              } @else if (comments.length > 0) {
+                <div class="comment-list">
+                  @for (comment of comments; track trackComment($index, comment)) {
+                    <article class="comment" [id]="'comment-' + comment.id">
+                      <div class="comment-header">
+                        <p class="comment-author">{{ comment.author.displayName || comment.author.username }}</p>
+                        @if (!isOwnComment(comment)) {
+                          <button
+                            type="button"
+                            class="comment-action-button"
+                            (click)="toggleCommentReportForm(comment)"
+                            [disabled]="reportedCommentIds()[comment.id]"
+                          >
+                            {{ reportedCommentIds()[comment.id] ? 'Reported' : 'Report' }}
+                          </button>
+                        }
+                      </div>
+                      <p class="comment-content">{{ comment.content }}</p>
+                    </article>
+                  }
+                </div>
+              } @else {
+                <p class="comments-status">No comments yet.</p>
+              }
+
+              @if (commentCursorByPostId()[post.id]) {
+                <button
+                  type="button"
+                  class="comments-more"
+                  (click)="loadMoreComments(post.id)"
+                  [disabled]="loadingCommentsByPostId()[post.id]"
+                >
+                  Load more comments
+                </button>
+              }
+            }
+          </section>
+        </article>
+      }
+    </div>
+
+    @if (nextCursor()) {
+      <button type="button" class="load-more" (click)="loadMore()" [disabled]="isLoadingMore()">
+        {{ isLoadingMore() ? 'Loading...' : 'Load more' }}
+      </button>
+    }
+  }
+</section>

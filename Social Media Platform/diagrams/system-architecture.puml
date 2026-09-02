@@ -1,0 +1,97 @@
+@startuml
+title Selamat Social Media Platform - Current System Architecture
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "User" as User
+actor "Admin / Moderator" as AdminUser
+
+package "Client" {
+  [Angular Web App] as Web
+}
+
+package "Backend: Spring Boot Modular Monolith" as Backend {
+  [Security / JWT] as Security
+  [Auth Module] as Auth
+  [User & Profile Module] as UserProfile
+  [Post / Feed Module] as PostFeed
+  [Comment Module] as Comment
+  [Reaction Module] as Reaction
+  [Follow Module] as Follow
+  [Media Module] as Media
+  [Message Module] as Message
+  [Notification Module] as Notification
+  [Report Module] as Report
+  [Admin / Moderation Module] as Admin
+  [Common Errors & Responses] as Common
+}
+
+package "Persistence & Local Storage" {
+  database "MySQL Database" as MySQL
+  [Flyway Migrations] as Flyway
+  folder "Local Uploads Directory" as Uploads
+}
+
+package "Documentation & Tests" {
+  [OpenAPI Specification] as OpenApi
+  [Backend Unit Tests] as BackendTests
+  [Angular Unit Tests] as UiTests
+}
+
+package "Future / Not Implemented Yet" {
+  cloud "Object Storage / CDN" as FutureStorage
+  queue "Background Queue" as FutureQueue
+  database "Search Index" as FutureSearch
+  cloud "Email / Push / SMS Providers" as FutureNotifications
+  cloud "OAuth / Analytics / Maps / AI Moderation" as FutureIntegrations
+}
+
+User --> Web
+AdminUser --> Web
+
+Web --> Security : Bearer JWT
+Web --> Auth : JSON API
+Web --> UserProfile : JSON API
+Web --> PostFeed : JSON API
+Web --> Comment : JSON API
+Web --> Reaction : JSON API
+Web --> Follow : JSON API
+Web --> Media : multipart upload
+Web --> Message : JSON API
+Web --> Notification : JSON API
+Web --> Report : JSON API
+Web --> Admin : admin JSON API
+
+Security --> Auth
+Auth --> MySQL
+UserProfile --> MySQL
+PostFeed --> MySQL
+Comment --> MySQL
+Reaction --> MySQL
+Follow --> MySQL
+Media --> MySQL
+Message --> MySQL
+Notification --> MySQL
+Report --> MySQL
+Admin --> MySQL
+
+Media --> Uploads : store files
+Web --> Uploads : load served media URLs
+
+Flyway --> MySQL : create / migrate schema
+
+Backend ..> Common
+OpenApi ..> Backend : documents REST API
+BackendTests ..> Backend
+UiTests ..> Web
+
+Media ..> FutureStorage
+Notification ..> FutureQueue
+Notification ..> FutureNotifications
+PostFeed ..> FutureSearch
+Auth ..> FutureIntegrations
+Admin ..> FutureIntegrations
+
+@enduml

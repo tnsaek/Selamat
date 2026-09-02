@@ -1,0 +1,225 @@
+<section class="reports-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Moderation</p>
+      <h1>Reports</h1>
+    </div>
+
+    <div class="page-actions">
+      <label>
+        <span>Status</span>
+        <select [value]="selectedStatus()" (change)="changeStatus($event)">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status === 'ALL' ? 'All reports' : (status | titlecase) }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="secondary" (click)="loadReports()" [disabled]="isLoading()">Refresh</button>
+    </div>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="alert error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="alert success" role="status">{{ successMessage() }}</p>
+  }
+
+  @if (isLoading()) {
+    <p class="status-message">Loading reports...</p>
+  } @else if (isLoadingTargetReport()) {
+    <p class="status-message">Loading selected report...</p>
+  } @else if (reports().length === 0) {
+    <section class="empty-state">
+      <h2>No reports found</h2>
+      <p>Reports submitted by users will appear here.</p>
+    </section>
+  } @else {
+    <div class="report-list">
+      @for (report of reports(); track trackReport($index, report)) {
+        <article class="report-card" [id]="'report-' + report.id" [class.target-report]="isTargetReport(report)">
+          <header>
+            <div>
+              <h2>{{ report.targetType | titlecase }} report</h2>
+              <p>{{ report.createdAt | date: 'medium' }}</p>
+            </div>
+            <span class="status" [class.final]="isFinalStatus(report.status)">{{ report.status | titlecase }}</span>
+          </header>
+
+          <dl>
+            <div>
+              <dt>Reason</dt>
+              <dd>{{ report.reason }}</dd>
+            </div>
+            <div>
+              <dt>Target</dt>
+              <dd>{{ report.targetType }} / {{ report.targetId }}</dd>
+            </div>
+            <div>
+              <dt>Reporter</dt>
+              <dd>{{ report.reporter.displayName || report.reporter.username }}</dd>
+            </div>
+            @if (report.resolver) {
+              <div>
+                <dt>Resolver</dt>
+                <dd>{{ report.resolver.displayName || report.resolver.username }}</dd>
+              </div>
+            }
+          </dl>
+
+          @if (report.details) {
+            <p class="details">{{ report.details }}</p>
+          }
+
+          <section class="target-section">
+            <div class="target-header">
+              <h3>Reported target</h3>
+              <button
+                type="button"
+                class="secondary"
+                (click)="loadReportTarget(report)"
+                [disabled]="loadingTargetIds()[report.id]"
+              >
+                {{ targetByReportId()[report.id] ? 'Refresh target' : loadingTargetIds()[report.id] ? 'Loading...' : 'View target' }}
+              </button>
+            </div>
+
+            @if (targetByReportId()[report.id]; as target) {
+              <div class="target-preview">
+                @switch (target.targetType) {
+                  @case ('POST') {
+                    <p><strong>Author:</strong> {{ target.author ? userLabel(target.author) : 'Unknown' }}</p>
+                    <p><strong>Status:</strong> {{ target.status }} / {{ target.visibility }}</p>
+                    <p><strong>Created:</strong> {{ target.createdAt | date: 'medium' }}</p>
+                    @if (target.content) {
+                      <p class="target-content">{{ target.content }}</p>
+                    }
+                    @if (target.media.length > 0) {
+                      <div class="target-media">
+                        @for (media of target.media; track media.id) {
+                          <a [href]="media.url" target="_blank" rel="noopener">
+                            {{ media.mediaType | titlecase }} attachment, {{ formatBytes(media.sizeBytes) }}
+                          </a>
+                        }
+                      </div>
+                    }
+                    <p>{{ target.reactionCount }} reactions, {{ target.commentCount }} comments</p>
+                  }
+                  @case ('COMMENT') {
+                    <p><strong>Author:</strong> {{ target.author ? userLabel(target.author) : 'Unknown' }}</p>
+                    <p><strong>Post:</strong> {{ target.postId }}</p>
+                    <p><strong>Status:</strong> {{ target.status }}</p>
+                    <p><strong>Created:</strong> {{ target.createdAt | date: 'medium' }}</p>
+                    @if (target.content) {
+                      <p class="target-content">{{ target.content }}</p>
+                    }
+                  }
+                  @case ('MESSAGE') {
+                    <p><strong>From:</strong> {{ target.sender ? userLabel(target.sender) : 'Unknown' }}</p>
+                    <p><strong>To:</strong> {{ target.recipient ? userLabel(target.recipient) : 'Unknown' }}</p>
+                    <p><strong>Status:</strong> {{ target.status }}</p>
+                    <p><strong>Sent:</strong> {{ target.createdAt | date: 'medium' }}</p>
+                    @if (target.content) {
+                      <p class="target-content">{{ target.content }}</p>
+                    }
+                  }
+                  @case ('USER') {
+                    <p><strong>User:</strong> {{ target.user ? userLabel(target.user) : 'Unknown' }}</p>
+                    <p><strong>Email:</strong> {{ target.email }}</p>
+                    <p><strong>Status:</strong> {{ target.userStatus }}</p>
+                    <p><strong>Joined:</strong> {{ target.createdAt | date: 'medium' }}</p>
+                    @if (target.bio) {
+                      <p class="target-content">{{ target.bio }}</p>
+                    }
+                  }
+                  @case ('MEDIA') {
+                    <p><strong>Uploader:</strong> {{ target.uploader ? userLabel(target.uploader) : 'Unknown' }}</p>
+                    @if (target.postId) {
+                      <p><strong>Post:</strong> {{ target.postId }}</p>
+                    }
+                    <p><strong>Type:</strong> {{ target.mediaType }} / {{ target.mimeType }}</p>
+                    <p><strong>Size:</strong> {{ formatBytes(target.sizeBytes) }}</p>
+                    <p><strong>Uploaded:</strong> {{ target.createdAt | date: 'medium' }}</p>
+                    @if (target.url) {
+                      <a [href]="target.url" target="_blank" rel="noopener">Open media</a>
+                    }
+                    @if (target.altText) {
+                      <p class="target-content">{{ target.altText }}</p>
+                    }
+                  }
+                }
+
+                <div class="moderation-actions">
+                  <button
+                    type="button"
+                    class="danger"
+                    (click)="moderateTarget(report, target)"
+                    [disabled]="!canModerateTarget(target) || moderatingTargetIds()[report.id]"
+                  >
+                    {{
+                      moderatingTargetIds()[report.id]
+                        ? 'Applying...'
+                        : canModerateTarget(target)
+                          ? moderationActionLabel(target)
+                          : 'No action available'
+                    }}
+                  </button>
+                </div>
+              </div>
+            }
+          </section>
+
+          @if (report.resolvedAt) {
+            <p class="resolved-at">Resolved {{ report.resolvedAt | date: 'medium' }}</p>
+          }
+
+          @if (report.resolutionNote) {
+            <section class="resolution-note">
+              <h3>Resolution note</h3>
+              <p>{{ report.resolutionNote }}</p>
+            </section>
+          }
+
+          @if (!isFinalStatus(report.status)) {
+            <label class="resolution-field">
+              <span>Resolution note</span>
+              <textarea
+                rows="3"
+                maxlength="1000"
+                placeholder="Add an optional note for this decision"
+                [value]="resolutionNoteByReportId()[report.id] || ''"
+                (input)="updateResolutionNote(report.id, $event)"
+              ></textarea>
+            </label>
+
+            <footer>
+              <button
+                type="button"
+                class="primary"
+                (click)="resolveReport(report, 'RESOLVED')"
+                [disabled]="resolvingReportIds()[report.id]"
+              >
+                Resolve
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                (click)="resolveReport(report, 'REJECTED')"
+                [disabled]="resolvingReportIds()[report.id]"
+              >
+                Reject
+              </button>
+            </footer>
+          }
+        </article>
+      }
+    </div>
+
+    @if (nextCursor()) {
+      <button type="button" class="load-more" (click)="loadMore()" [disabled]="isLoadingMore()">
+        {{ isLoadingMore() ? 'Loading...' : 'Load more' }}
+      </button>
+    }
+  }
+</section>

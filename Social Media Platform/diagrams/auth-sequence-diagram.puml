@@ -1,0 +1,75 @@
+@startuml
+title Authentication Sequence Diagram - Sign Up and Login
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Auth Pages" as Frontend
+participant "AuthController" as AuthController
+participant "AuthService" as AuthService
+participant "UserRepository" as UserRepository
+participant "ProfileRepository" as ProfileRepository
+participant "RoleRepository" as RoleRepository
+participant "RefreshTokenRepository" as RefreshTokenRepository
+participant "JwtTokenService" as JwtTokenService
+database "MySQL" as MySQL
+
+== Sign Up ==
+
+User -> Frontend: Enter registration details
+Frontend -> AuthController: POST /auth/signup
+AuthController -> AuthService: signup(request)
+AuthService -> UserRepository: existsByUsername / existsByEmail
+UserRepository -> MySQL: Query users
+MySQL --> UserRepository: Availability result
+
+alt Username or email already exists
+  UserRepository --> AuthService: Duplicate found
+  AuthService --> AuthController: BusinessRuleException
+  AuthController --> Frontend: 409 Conflict
+  Frontend --> User: Show signup error
+else Username and email available
+  AuthService -> AuthService: Hash password
+  AuthService -> UserRepository: save(user)
+  UserRepository -> MySQL: Insert users row
+  MySQL --> UserRepository: Saved user
+  AuthService -> RoleRepository: Load default role
+  RoleRepository -> MySQL: Query roles
+  MySQL --> RoleRepository: USER role
+  AuthService -> ProfileRepository: save(profile)
+  ProfileRepository -> MySQL: Insert profiles row
+  MySQL --> ProfileRepository: Saved profile
+  AuthService -> JwtTokenService: generate access token
+  AuthService -> RefreshTokenRepository: save(refresh token)
+  RefreshTokenRepository -> MySQL: Insert refresh_tokens row
+  AuthService --> AuthController: Auth response
+  AuthController --> Frontend: 201 Created
+  Frontend --> User: Navigate to authenticated app
+end
+
+== Login ==
+
+User -> Frontend: Enter username/email and password
+Frontend -> AuthController: POST /auth/login
+AuthController -> AuthService: login(request)
+AuthService -> UserRepository: findByUsernameOrEmail
+UserRepository -> MySQL: Query active user
+MySQL --> UserRepository: User or empty
+
+alt User missing or password invalid
+  AuthService --> AuthController: authentication error
+  AuthController --> Frontend: 401 Unauthorized
+  Frontend --> User: Show invalid login message
+else User exists and password valid
+  AuthService -> JwtTokenService: generate access token
+  JwtTokenService --> AuthService: JWT
+  AuthService -> RefreshTokenRepository: save(refresh token)
+  RefreshTokenRepository -> MySQL: Insert refresh_tokens row
+  AuthService --> AuthController: Tokens and user summary
+  AuthController --> Frontend: 200 OK
+  Frontend -> Frontend: Store tokens
+  Frontend --> User: Navigate to feed
+end
+
+@enduml

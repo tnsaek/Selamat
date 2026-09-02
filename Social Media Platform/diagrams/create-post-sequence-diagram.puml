@@ -1,0 +1,74 @@
+@startuml
+title Create Post Sequence Diagram
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "User" as User
+participant "Angular Feed Page" as Frontend
+participant "Security Filter" as Security
+participant "MediaController" as MediaController
+participant "MediaService" as MediaService
+participant "PostController" as PostController
+participant "PostService" as PostService
+participant "UserRepository" as UserRepository
+participant "PostRepository" as PostRepository
+participant "MediaRepository" as MediaRepository
+database "MySQL" as MySQL
+folder "uploads/" as Uploads
+
+User -> Frontend: Compose post
+
+alt Post includes media
+  User -> Frontend: Choose media file
+  Frontend -> Security: POST /media multipart
+  Security -> MediaController: Authenticated upload request
+  MediaController -> MediaService: upload(file, currentUser)
+  MediaService -> MediaService: Validate type, size, and file name
+
+  alt File invalid or too large
+    MediaService --> MediaController: validation error
+    MediaController --> Frontend: 400 Bad Request
+    Frontend --> User: Show upload error
+  else File accepted
+    MediaService -> Uploads: Store file on disk
+    Uploads --> MediaService: Stored file path
+    MediaService -> MediaRepository: save(media metadata)
+    MediaRepository -> MySQL: Insert media row
+    MySQL --> MediaRepository: Saved media
+    MediaService --> MediaController: Media response
+    MediaController --> Frontend: 201 Created
+    Frontend -> Frontend: Attach media id/url to draft
+  end
+end
+
+User -> Frontend: Submit post
+Frontend -> Security: POST /posts
+Security -> PostController: Authenticated create request
+PostController -> PostService: createPost(request, currentUser)
+PostService -> UserRepository: Load current user
+UserRepository -> MySQL: Query users
+MySQL --> UserRepository: Author
+PostService -> PostService: Validate content and visibility
+
+alt Request invalid
+  PostService --> PostController: validation/business error
+  PostController --> Frontend: 400/422 Error
+  Frontend --> User: Show post error
+else Request valid
+  PostService -> PostRepository: save(post)
+  PostRepository -> MySQL: Insert posts row
+  MySQL --> PostRepository: Saved post
+
+  opt Media ids supplied
+    PostService -> MediaRepository: Attach uploaded media to post
+    MediaRepository -> MySQL: Update media.post_id
+    MySQL --> MediaRepository: Media linked
+  end
+
+  PostService --> PostController: Created post response
+  PostController --> Frontend: 201 Created
+  Frontend --> User: Show new post in feed
+end
+
+@enduml

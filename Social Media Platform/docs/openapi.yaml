@@ -1,0 +1,1842 @@
+openapi: 3.0.3
+info:
+  title: Social Media Platform API
+  version: 1.0.0
+  description: REST API documentation for the Selamat social media platform.
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+  - url: https://api.selamat.example.com/api
+    description: Production server placeholder
+
+tags:
+  - name: Authentication
+  - name: Users
+  - name: Profiles
+  - name: Feed
+  - name: Posts
+  - name: Comments
+  - name: Reactions
+  - name: Follows
+  - name: Media
+  - name: Messages
+  - name: Notifications
+  - name: Reports
+  - name: Admin
+
+paths:
+  /auth/signup:
+    post:
+      tags: [Authentication]
+      summary: Register a new user account
+      operationId: signUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with username or email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh an expired access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout the current user
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request a password reset message
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Password reset message returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset a password using a reset token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset message returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get the current authenticated user
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/search:
+    get:
+      tags: [Users]
+      summary: Search active users
+      operationId: searchUsers
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        '200':
+          description: Users returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get a user by ID
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/profile:
+    get:
+      tags: [Profiles]
+      summary: Get a user's profile
+      operationId: getProfile
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Profile returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Profiles]
+      summary: Update the current user's profile
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /feed:
+    get:
+      tags: [Feed]
+      summary: Load the authenticated user's home feed
+      operationId: getFeed
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Feed returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /posts:
+    post:
+      tags: [Posts]
+      summary: Create a new post
+      operationId: createPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /posts/{postId}:
+    get:
+      tags: [Posts]
+      summary: Get a post by ID
+      operationId: getPostById
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Post returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Posts]
+      summary: Update a post owned by the current user
+      operationId: updatePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Posts]
+      summary: Delete a post owned by the current user
+      operationId: deletePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204':
+          description: Post deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /posts/{postId}/comments:
+    get:
+      tags: [Comments]
+      summary: List comments for a post
+      operationId: listPostComments
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Comments returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Comments]
+      summary: Create a comment on a post
+      operationId: createComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /posts/{postId}/reactions:
+    put:
+      tags: [Reactions]
+      summary: Add or replace the current user's reaction to a post
+      operationId: reactToPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionRequest'
+      responses:
+        '200':
+          description: Reaction saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Reactions]
+      summary: Remove the current user's reaction from a post
+      operationId: removePostReaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204':
+          description: Reaction removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /media:
+    post:
+      tags: [Media]
+      summary: Upload media for a post or profile
+      operationId: uploadMedia
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                altText:
+                  type: string
+                  maxLength: 255
+      responses:
+        '201':
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /users/{userId}/follow:
+    get:
+      tags: [Follows]
+      summary: Check whether the current user follows this user
+      operationId: getFollowStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Follow status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Follows]
+      summary: Follow or request to follow a user
+      operationId: followUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '201':
+          description: Follow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Follow'
+        '202':
+          description: Follow request pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Follow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Follows]
+      summary: Unfollow a user
+      operationId: unfollowUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: Unfollowed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /messages:
+    get:
+      tags: [Messages]
+      summary: List message conversations for the current user
+      operationId: listConversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Messages returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Messages]
+      summary: Send a direct message
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /messages/{messageId}:
+    get:
+      tags: [Messages]
+      summary: Get a message by ID
+      operationId: getMessageById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '200':
+          description: Message returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /messages/conversations/{participantId}/read:
+    patch:
+      tags: [Messages]
+      summary: Mark a conversation as read
+      operationId: markConversationAsRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: participantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Conversation marked as read
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for the current user
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Notifications returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      operationId: getUnreadCount
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      operationId: markAllNotificationsRead
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      operationId: markNotificationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NotificationId'
+      responses:
+        '200':
+          description: Notification updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reports:
+    post:
+      tags: [Reports]
+      summary: Report content or a user
+      operationId: reportContent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReportRequest'
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /admin/reports:
+    get:
+      tags: [Admin]
+      summary: List reports for moderation review
+      operationId: adminListReports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ReportStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Reports returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/reports/summary:
+    get:
+      tags: [Admin]
+      summary: Get moderation report dashboard summary
+      operationId: adminGetReportSummary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Report summary returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReportSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/reports/{reportId}:
+    get:
+      tags: [Admin]
+      summary: Get one moderation report
+      operationId: adminGetReportById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Report returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/reports/{reportId}/target:
+    get:
+      tags: [Admin]
+      summary: Get the target of a moderation report
+      operationId: adminGetReportTarget
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Report target returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportTarget'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/reports/{reportId}/resolve:
+    patch:
+      tags: [Admin]
+      summary: Resolve a moderation report
+      operationId: adminResolveReport
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveReportRequest'
+      responses:
+        '200':
+          description: Report resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/moderation/posts/{postId}/hide:
+    patch:
+      tags: [Admin]
+      summary: Hide a post
+      operationId: adminHidePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204':
+          description: Post hidden
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/moderation/comments/{commentId}/hide:
+    patch:
+      tags: [Admin]
+      summary: Hide a comment
+      operationId: adminHideComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '204':
+          description: Comment hidden
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/moderation/messages/{messageId}/delete:
+    patch:
+      tags: [Admin]
+      summary: Delete a message
+      operationId: adminDeleteMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '204':
+          description: Message deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/moderation/media/{mediaId}/hide:
+    patch:
+      tags: [Admin]
+      summary: Hide media
+      operationId: adminHideMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaId'
+      responses:
+        '204':
+          description: Media hidden
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/moderation/users/{userId}/suspend:
+    patch:
+      tags: [Admin]
+      summary: Suspend a user
+      operationId: adminSuspendUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User suspended
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MessageId:
+      name: messageId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MediaId:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ReportId:
+      name: reportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      description: ISO-8601 cursor returned from a previous paginated response.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    BadRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication is required or the token is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: The authenticated user does not have permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource conflict, such as duplicate username or email
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntity:
+      description: Request was valid JSON but failed business validation or moderation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    SignUpRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: tinsae
+        email:
+          type: string
+          format: email
+          example: tinsae@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: StrongPassword123
+
+    LoginRequest:
+      type: object
+      required: [identifier, password]
+      properties:
+        identifier:
+          type: string
+          description: Username or email address.
+          example: tinsae
+        password:
+          type: string
+          format: password
+          example: StrongPassword123
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+
+    PasswordResetMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, tokenType, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, username, email, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        roles:
+          type: array
+          items:
+            type: string
+          example: [USER]
+        createdAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      required: [id, userId]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        coverImageUrl:
+          type: string
+          format: uri
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        websiteUrl:
+          type: string
+          format: uri
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+        bio:
+          type: string
+          maxLength: 500
+        avatarUrl:
+          type: string
+          format: uri
+        coverImageUrl:
+          type: string
+          format: uri
+          maxLength: 500
+        street:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        state:
+          type: string
+          maxLength: 120
+        country:
+          type: string
+          maxLength: 120
+        websiteUrl:
+          type: string
+          format: uri
+          maxLength: 255
+
+    CreatePostRequest:
+      type: object
+      required: [visibility]
+      properties:
+        content:
+          type: string
+          maxLength: 5000
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 5000
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+
+    Post:
+      type: object
+      required: [id, author, visibility, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        author:
+          $ref: '#/components/schemas/UserSummary'
+        content:
+          type: string
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+        status:
+          $ref: '#/components/schemas/PostStatus'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+        commentCount:
+          type: integer
+          format: int64
+        reactionCount:
+          type: integer
+          format: int64
+        viewerReaction:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ReactionType'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Media:
+      type: object
+      required: [id, url, mediaType, mimeType, sizeBytes, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        mimeType:
+          type: string
+          example: image/png
+        sizeBytes:
+          type: integer
+          format: int64
+        altText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateCommentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 2000
+        parentCommentId:
+          type: string
+          format: uuid
+          nullable: true
+
+    Comment:
+      type: object
+      required: [id, postId, author, content, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        parentCommentId:
+          type: string
+          format: uuid
+          nullable: true
+        author:
+          $ref: '#/components/schemas/UserSummary'
+        content:
+          type: string
+        status:
+          $ref: '#/components/schemas/CommentStatus'
+        reactionCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    ReactionRequest:
+      type: object
+      required: [reactionType]
+      properties:
+        reactionType:
+          $ref: '#/components/schemas/ReactionType'
+
+    Reaction:
+      type: object
+      required: [id, userId, reactionType, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+          nullable: true
+        commentId:
+          type: string
+          format: uuid
+          nullable: true
+        reactionType:
+          $ref: '#/components/schemas/ReactionType'
+        createdAt:
+          type: string
+          format: date-time
+
+    Follow:
+      type: object
+      required: [id, followerId, followedId, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        followerId:
+          type: string
+          format: uuid
+        followedId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/FollowStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    FollowStatusResponse:
+      type: object
+      required: [following]
+      properties:
+        following:
+          type: boolean
+
+    SendMessageRequest:
+      type: object
+      required: [recipientId, content]
+      properties:
+        recipientId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          maxLength: 5000
+
+    Message:
+      type: object
+      required: [id, sender, recipient, content, status, sentAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sender:
+          $ref: '#/components/schemas/UserSummary'
+        recipient:
+          $ref: '#/components/schemas/UserSummary'
+        content:
+          type: string
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        sentAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Notification:
+      type: object
+      required: [id, recipientId, notificationType, title, body, read, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipientId:
+          type: string
+          format: uuid
+        actor:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        notificationType:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+        body:
+          type: string
+        targetType:
+          type: string
+          nullable: true
+        targetId:
+          type: string
+          format: uuid
+          nullable: true
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    NotificationCountResponse:
+      type: object
+      required: [unreadCount]
+      properties:
+        unreadCount:
+          type: integer
+          format: int64
+
+    CreateReportRequest:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType:
+          $ref: '#/components/schemas/ReportTargetType'
+        targetId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          maxLength: 255
+        details:
+          type: string
+          maxLength: 5000
+
+    ResolveReportRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        resolutionNote:
+          type: string
+          maxLength: 1000
+
+    Report:
+      type: object
+      required: [id, reporter, targetType, targetId, reason, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporter:
+          $ref: '#/components/schemas/UserSummary'
+        resolver:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        targetType:
+          $ref: '#/components/schemas/ReportTargetType'
+        targetId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        details:
+          type: string
+        resolutionNote:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminReportSummary:
+      type: object
+      required:
+        - openReports
+        - underReviewReports
+        - resolvedReports
+        - rejectedReports
+        - userReports
+        - contentReports
+        - mediaReports
+      properties:
+        openReports:
+          type: integer
+          format: int64
+        underReviewReports:
+          type: integer
+          format: int64
+        resolvedReports:
+          type: integer
+          format: int64
+        rejectedReports:
+          type: integer
+          format: int64
+        userReports:
+          type: integer
+          format: int64
+        contentReports:
+          type: integer
+          format: int64
+        mediaReports:
+          type: integer
+          format: int64
+
+    ReportTarget:
+      type: object
+      required: [reportId, targetType, targetId]
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        targetType:
+          $ref: '#/components/schemas/ReportTargetType'
+        targetId:
+          type: string
+          format: uuid
+        user:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        email:
+          type: string
+          format: email
+          nullable: true
+        userStatus:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserStatus'
+        bio:
+          type: string
+          nullable: true
+        author:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        sender:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        recipient:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        uploader:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+        postId:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          nullable: true
+        commentCount:
+          type: integer
+          format: int64
+          nullable: true
+        reactionCount:
+          type: integer
+          format: int64
+          nullable: true
+        url:
+          type: string
+          format: uri
+          nullable: true
+        mediaType:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/MediaType'
+        mimeType:
+          type: string
+          nullable: true
+        sizeBytes:
+          type: integer
+          format: int64
+          nullable: true
+        altText:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaPreview'
+
+    MediaPreview:
+      type: object
+      required: [id, url, mediaType, mimeType, sizeBytes]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        altText:
+          type: string
+          nullable: true
+
+    UserSummary:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    FeedResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        nextCursor:
+          type: string
+          nullable: true
+
+    CommentPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        nextCursor:
+          type: string
+          nullable: true
+
+    MessagePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        nextCursor:
+          type: string
+          nullable: true
+
+    NotificationPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        nextCursor:
+          type: string
+          nullable: true
+
+    ReportPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        nextCursor:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed.
+        details:
+          type: array
+          items:
+            type: string
+
+    UserStatus:
+      type: string
+      enum: [ACTIVE, SUSPENDED, DELETED]
+
+    PostVisibility:
+      type: string
+      enum: [PUBLIC, FOLLOWERS_ONLY, PRIVATE]
+
+    PostStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, HIDDEN, DELETED]
+
+    MediaType:
+      type: string
+      enum: [IMAGE, VIDEO, AUDIO, DOCUMENT]
+
+    CommentStatus:
+      type: string
+      enum: [VISIBLE, HIDDEN, DELETED]
+
+    ReactionType:
+      type: string
+      enum: [LIKE, LOVE, LAUGH, SAD, ANGRY]
+
+    FollowStatus:
+      type: string
+      enum: [PENDING, ACCEPTED, BLOCKED]
+
+    MessageStatus:
+      type: string
+      enum: [SENT, DELIVERED, READ, DELETED]
+
+    NotificationType:
+      type: string
+      enum: [FOLLOW, COMMENT, REACTION, MESSAGE, REPORT_UPDATE, SYSTEM]
+
+    ReportTargetType:
+      type: string
+      enum: [USER, POST, COMMENT, MESSAGE, MEDIA]
+
+    ReportStatus:
+      type: string
+      enum: [OPEN, UNDER_REVIEW, RESOLVED, REJECTED]

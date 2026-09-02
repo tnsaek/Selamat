@@ -1,0 +1,5 @@
+ALTER TABLE profiles
+    ADD COLUMN street VARCHAR(255),
+    ADD COLUMN city VARCHAR(120),
+    ADD COLUMN state VARCHAR(120),
+    ADD COLUMN country VARCHAR(120);

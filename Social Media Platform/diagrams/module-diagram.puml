@@ -1,0 +1,144 @@
+@startuml
+title Selamat Social Media Platform - Implemented Module Diagram
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "Client Layer" {
+  [Angular Web App] as WebApp
+}
+
+package "Spring Boot Application Modules" {
+  [auth] as Auth
+  [security] as Security
+  [user] as Users
+  [role] as Roles
+  [profile] as Profiles
+  [post] as Posts
+  [feed] as Feed
+  [media] as Media
+  [comment] as Comments
+  [reaction] as Reactions
+  [follow] as Follows
+  [message] as Messages
+  [notification] as Notifications
+  [report] as Reports
+  [admin] as Admin
+  [common] as Common
+}
+
+package "Persistence / Storage" {
+  database "MySQL" as MySQL
+  [Flyway] as Flyway
+  folder "uploads/" as Uploads
+}
+
+package "API Documentation" {
+  [OpenAPI YAML] as OpenApi
+}
+
+WebApp --> Auth : login / signup / password reset
+WebApp --> Users : search users
+WebApp --> Profiles : view / edit profiles
+WebApp --> Posts : create / update / delete posts
+WebApp --> Feed : load feed
+WebApp --> Media : upload profile, cover, post media
+WebApp --> Comments : comment workflows
+WebApp --> Reactions : like / reaction workflows
+WebApp --> Follows : follow workflows
+WebApp --> Messages : conversations
+WebApp --> Notifications : unread count and notification list
+WebApp --> Reports : submit reports
+WebApp --> Admin : report review and moderation tools
+
+Security --> Auth : JWT validation
+Auth --> Users
+Auth --> Roles
+Auth --> MySQL
+
+Users --> Roles
+Users --> Profiles
+Users --> MySQL
+
+Profiles --> Users
+Profiles --> Media
+Profiles --> MySQL
+
+Posts --> Users
+Posts --> Media
+Posts --> MySQL
+
+Feed --> Posts
+Feed --> Follows
+Feed --> Reactions
+Feed --> MySQL
+
+Comments --> Posts
+Comments --> Users
+Comments --> Notifications
+Comments --> MySQL
+
+Reactions --> Posts
+Reactions --> Users
+Reactions --> Notifications
+Reactions --> MySQL
+
+Follows --> Users
+Follows --> Notifications
+Follows --> MySQL
+
+Messages --> Users
+Messages --> Notifications
+Messages --> MySQL
+
+Notifications --> Users
+Notifications --> Posts
+Notifications --> MySQL
+
+Reports --> Users
+Reports --> Posts
+Reports --> Comments
+Reports --> MySQL
+
+Admin --> Reports
+Admin --> Users
+Admin --> Posts
+Admin --> Comments
+Admin --> Media
+Admin --> MySQL
+
+Media --> Uploads : file storage
+Media --> MySQL : metadata
+
+Flyway --> MySQL : schema migrations
+
+Auth ..> Common
+Users ..> Common
+Profiles ..> Common
+Posts ..> Common
+Feed ..> Common
+Media ..> Common
+Comments ..> Common
+Reactions ..> Common
+Follows ..> Common
+Messages ..> Common
+Notifications ..> Common
+Reports ..> Common
+Admin ..> Common
+
+OpenApi ..> Auth
+OpenApi ..> Users
+OpenApi ..> Profiles
+OpenApi ..> Posts
+OpenApi ..> Feed
+OpenApi ..> Media
+OpenApi ..> Comments
+OpenApi ..> Reactions
+OpenApi ..> Follows
+OpenApi ..> Messages
+OpenApi ..> Notifications
+OpenApi ..> Reports
+OpenApi ..> Admin
+
+@enduml
